@@ -3,7 +3,7 @@ const FirecrawlApp = require('@mendable/firecrawl-js').default;
 const { z } = require('zod');
 
 // 1. SETUP: Put your API Key here directly for testing
-const apiKey = "fc-YOUR_API_KEY_HERE"; 
+const apiKey = "fc-68a630490431421c813e16f3eb6934f0"; 
 const app = new FirecrawlApp({ apiKey: apiKey });
 
 // 2. SCHEMA: Define what the data should look like
