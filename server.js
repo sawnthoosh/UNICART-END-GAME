@@ -65,9 +65,35 @@ app.get('/api/search', async (req, res) => {
     console.log(`✅ Returned ${cleanFeed.length} items to Frontend.`);
     res.json(cleanFeed);
 });
+// --- DYNAMIC FEED ENGINE ---
+const TRENDING_TOPICS = [
+    "best selling sneakers india",
+    "trending tech gadgets 2025",
+    "minimalist mens fashion",
+    "popular smartwatches",
+    "retro gaming consoles",
+    "wireless headphones deals"
+];
+
+app.get('/api/feed', async (req, res) => {
+    // 1. Pick a random topic (simulating an algorithm)
+    const randomTopic = TRENDING_TOPICS[Math.floor(Math.random() * TRENDING_TOPICS.length)];
+    
+    console.log(`\n🌊 Generating Feed for topic: "${randomTopic}"...`);
+
+    // 2. Reuse your existing engine to fetch real data
+    const products = await searchShopping(randomTopic);
+
+    // 3. Return data + the category name (so we can show "Trending in Tech")
+    res.json({
+        topic: randomTopic.replace("best selling", "").replace("india", "").trim(),
+        items: products
+    });
+});
 
 // 3. Start Server
 app.listen(PORT, () => {
     console.log(`\n⚡️ UNICART SERVER ONLINE at http://localhost:${PORT}`);
     console.log(`👉 Test link: http://localhost:${PORT}/api/search?q=iphone+15`);
 });
+
