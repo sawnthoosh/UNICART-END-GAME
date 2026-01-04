@@ -1,5 +1,4 @@
-// server.js
-require('dotenv').config(); // Load the .env file
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -7,12 +6,15 @@ const axios = require('axios');
 const app = express();
 const PORT = 3000;
 
-app.use(cors()); // Allow frontend to talk to us
+app.use(cors());
 
-// 1. The Engine Function
+// --- 1. THE SHARED ENGINE (Reusable) ---
 async function searchShopping(query) {
     const apiKey = process.env.SERPER_API_KEY;
-    if (!apiKey) throw new Error("API Key missing! Check .env file.");
+    if (!apiKey) {
+        console.error("❌ ERROR: Missing SERPER_API_KEY in .env file");
+        return [];
+    }
 
     const config = {
         method: 'post',
@@ -30,70 +32,59 @@ async function searchShopping(query) {
     };
 
     try {
-        console.log(`\n🚀 Forwarding "${query}" to Serper...`);
+        console.log(`\n🚀 Engine: Hunting for "${query}"...`);
         const response = await axios.request(config);
-        return response.data.shopping || [];
+        const rawItems = response.data.shopping || [];
+        
+        // Clean Data
+        return rawItems.map(item => ({
+            id: item.productId || Math.random().toString(36).substr(2, 9),
+            title: item.title,
+            price: item.price, 
+            source: item.source,
+            image: item.imageUrl,
+            link: item.link,
+            rating: item.rating || 0
+        }));
     } catch (error) {
-        console.error("❌ Serper Error:", error.message);
+        console.error("❌ Engine Error:", error.message);
         return [];
     }
 }
 
-// 2. The API Endpoint
+// --- 2. THE SEARCH API ---
 app.get('/api/search', async (req, res) => {
     const query = req.query.q;
+    if (!query) return res.status(400).json({ error: "No query provided" });
     
-    if (!query) {
-        return res.status(400).json({ error: "Query parameter 'q' is required" });
-    }
-
-    // Call the engine
     const products = await searchShopping(query);
-    
-    // Normalize data (Make sure every item has the fields our UI expects)
-    const cleanFeed = products.map(item => ({
-        id: item.productId || Math.random().toString(36).substr(2, 9),
-        title: item.title,
-        price: item.price, 
-        source: item.source,
-        image: item.imageUrl,
-        link: item.link,
-        rating: item.rating || 0,
-        reviews: item.reviewCount || 0
-    }));
-
-    console.log(`✅ Returned ${cleanFeed.length} items to Frontend.`);
-    res.json(cleanFeed);
+    res.json(products);
 });
-// --- DYNAMIC FEED ENGINE ---
+
+// --- 3. THE NEW FEED API (Discovery Engine) ---
 const TRENDING_TOPICS = [
-    "best selling sneakers india",
-    "trending tech gadgets 2025",
-    "minimalist mens fashion",
-    "popular smartwatches",
-    "retro gaming consoles",
-    "wireless headphones deals"
+    "top rated sneakers india",
+    "trending smartwatches 2025",
+    "nothing phone 2a accessories",
+    "aesthetic desk setup accessories",
+    "best selling gaming mouse",
+    "vintage casio watches"
 ];
 
 app.get('/api/feed', async (req, res) => {
-    // 1. Pick a random topic (simulating an algorithm)
+    // Pick a random topic to keep the app fresh
     const randomTopic = TRENDING_TOPICS[Math.floor(Math.random() * TRENDING_TOPICS.length)];
     
-    console.log(`\n🌊 Generating Feed for topic: "${randomTopic}"...`);
-
-    // 2. Reuse your existing engine to fetch real data
+    console.log(`\n🌊 Generating Feed: ${randomTopic}`);
     const products = await searchShopping(randomTopic);
 
-    // 3. Return data + the category name (so we can show "Trending in Tech")
     res.json({
-        topic: randomTopic.replace("best selling", "").replace("india", "").trim(),
+        topic: randomTopic.replace("top rated", "").replace("india", "").trim(),
         items: products
     });
 });
 
-// 3. Start Server
+// Start
 app.listen(PORT, () => {
-    console.log(`\n⚡️ UNICART SERVER ONLINE at http://localhost:${PORT}`);
-    console.log(`👉 Test link: http://localhost:${PORT}/api/search?q=iphone+15`);
+    console.log(`\n⚡️ UNICART ENGINE ONLINE at http://localhost:${PORT}`);
 });
-
